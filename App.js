@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 
 export default function App() {
 
-  const db = SQLite.openDatabase('productdb.db');
+  const db = SQLite.openDatabaseSync('productdb.db');
 
   const [product, setProduct] = useState('');
   const [amount, setAmount] = useState('');
@@ -12,57 +12,49 @@ export default function App() {
 
 
   // Alustetaan tietokanta ja luodaan taulukko, jos sitä ei ole
-  const initialize = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY NOT NULL, product TEXT, amount TEXT);`,
-        [],
-        () => updateList(), // Päivitetään lista kun tietokanta on luotu onnistuneesti
-        (txObj, error) => console.error('Could not open database', error)
-      );
-    });
-  };
+  const initialize = async () => {
+    try {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS item (id INTEGER PRIMARY KEY NOT NULL, product TEXT, amount TEXT);
+      `);
+      // Todo: update the course list
+    } catch (error) {
+      console.error('Could not open database', error);
+    }
+  }
 
 
     // Päivitetään lista tietokannasta
-    const updateList = () => {
-      db.transaction(tx => {
-        tx.executeSql(
-          'SELECT * FROM products;',
-          [],
-          (txObj, resultSet) => setProducts(resultSet.rows._array), // Päivitetään tuotteet
-          (txObj, error) => console.error('Could not get items', error)
-        );
-      });
-    };
+    const updateList = async () => {
+      try {
+        const list = await db.getAllAsync('SELECT * from item');
+        setProducts(list);
+      } catch (error) {
+        console.error('Could not get items', error);
+      }
+    }
 
   // Lisätään uusi ostos tietokantaan
-  const saveItem = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT INTO products (product, amount) VALUES (?, ?);',
-        [product, amount],
-        () => {
-          updateList(); // Päivitetään lista kun uusi item on lisätty
-          setProduct(''); // Tyhjennetään kentät
-          setAmount('');
-        },
-        (txObj, error) => console.error('Could not add item', error)
-      );
-    });
+  const saveItem = async () => {
+    try {
+      await db.runAsync('INSERT INTO item VALUES (?, ?, ?)', null, product, amount);
+      // Todo: update the course list
+    } catch (error) {
+      console.error('Could not add item', error);
+    }
   };
 
   // Poista ostos tietokannasta
-  const deleteItem = (id) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'DELETE FROM products WHERE id = ?;',
-        [id],
-        () => updateList(), // Päivitä lista kun item on poistettu
-        (txObj, error) => console.error('Could not delete item', error)
-      );
-    });
-  };
+  const deleteItem = async (id) => {
+    console.log('deleteItem')
+    try {
+      await db.runAsync('DELETE FROM item WHERE id=?', id);
+      await updateList();
+    }
+    catch (error) {
+      console.error('Could not delete item', error);
+    }
+  }
 
   useEffect(() => {
     initialize(); // Kutsutaan kun komponentti renderöidään ensimmäistä kertaa
@@ -104,5 +96,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginVertical: 10,
+    width: '100%',
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    width: '100%',
+  },
+  boughtText: {
+    color: '#0000ff',
   },
 });
