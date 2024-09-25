@@ -37,10 +37,12 @@ export default function App() {
   // Lisätään uusi ostos tietokantaan
   const saveItem = async () => {
     try {
-      await db.runAsync('INSERT INTO item VALUES (?, ?, ?)', null, product, amount);
-      // Todo: update the course list
+      await db.runAsync('INSERT INTO item (product, amount) VALUES (?, ?)', product, amount);
+      setProduct(''); // Tyhjennetään syöttökenttä tallennuksen jälkeen
+      setAmount(''); // Tyhjennetään syöttökenttä tallennuksen jälkeen
+      await updateList(); // Päivitetään tuoteluettelo tallennuksen jälkeen
     } catch (error) {
-      console.error('Could not add item', error);
+      console.error('Tuotteen lisääminen epäonnistui', error);
     }
   };
 
@@ -95,7 +97,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     padding: 16,
   },
   input: {
